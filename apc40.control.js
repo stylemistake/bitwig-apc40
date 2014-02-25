@@ -9,12 +9,10 @@ host.defineController(
 	"0.1", "0894C4A0-998E-11E3-A5E2-0800200C9A66"
 );
 host.defineMidiPorts( 1, 1 );
-host.addDeviceNameBasedDiscoveryPair(
-	["Akai APC40 MIDI 1"],
-	["Akai APC40 MIDI 1"]
-);
+host.addDeviceNameBasedDiscoveryPair( ["Akai APC40 MIDI 1"], ["Akai APC40 MIDI 1"] );
+host.addDeviceNameBasedDiscoveryPair( ["Akai APC40"], ["Akai APC40"] );
 
-var controller, transport, userctl;
+var controller, transport, userctl, tracks, master, application;
 
 function init() {
 	// Initialize
@@ -23,8 +21,11 @@ function init() {
 		host.getMidiOutPort(0)
 	);
 
+	application = host.createApplication();
 	transport = host.createTransport();
-	userctl = host.createUserControlsSection( 64 );
+	master = host.createMasterTrack(0);
+	tracks = host.createTrackBank( 8, 2, 5 );
+	userctl = host.createUserControlsSection(64);
 
 	// -------------------------------------------------------------------
 	//  Device knob user mapping
@@ -61,13 +62,12 @@ function init() {
 
 
 	// -------------------------------------------------------------------
-	//  Track knob user mapping
+	//  Crossfade user mapping
 	// -------------------------------------------------------------------
 
 	mapUserCtl( userctl.getControl( 16 ), "APC Crossfade A" );
 	mapUserCtl( userctl.getControl( 17 ), "APC Crossfade B" );
 	controller.setEventCallback( "crossfader_change", function( crossfader ) {
-		println( "" + crossfader.a + " " + crossfader.b );
 		if ( crossfader.assign_a ) {
 			userctl.getControl( 16 ).set( crossfader.a, 128 );
 			userctl.getControl( 17 ).set( crossfader.b, 128 );
@@ -77,6 +77,80 @@ function init() {
 		}
 	});
 
+
+	// -------------------------------------------------------------------
+	//  Cue knob mappings
+	// -------------------------------------------------------------------
+
+	controller.setEventCallback( "cue_level_change", function( value ) {
+		userctl.getControl( 18 ).inc( value, 128 );
+	});
+
+	controller.setEventCallback( "bpm_change", function( value ) {
+		transport.increaseTempo( value, 647 );
+	});
+
+
+	// -------------------------------------------------------------------
+	//  Track/Master volume mappings
+	// -------------------------------------------------------------------
+
+	controller.setEventCallback( "track_volume_change", function( data ) {
+		// TODO: Master track volume must be modifiable only by master fader
+		//       Also, they should not scroll together with clip view.
+		tracks.getTrack( data.track ).getVolume().set( data.value, 188 );
+
+		// Can be assigned to anything you like (pew pew fx ftw).
+		// userctl.getControl( 20 + data.track ).inc( data.value, 128 );
+	});
+
+	controller.setEventCallback( "master_volume_change", function( value ) {
+		master.getVolume().set( value, 188 );
+	});
+
+
+	// -------------------------------------------------------------------
+	//  Scrolling
+	// -------------------------------------------------------------------
+
+	controller.setEventCallback( "scroll_button_press", function( direction ) {
+		if ( direction === 0 ) tracks.scrollScenesUp();
+		else if ( direction === 1 ) tracks.scrollScenesDown();
+		else if ( direction === 2 ) tracks.scrollTracksDown();
+		else if ( direction === 3 ) tracks.scrollTracksUp();
+	});
+
+
+	// -------------------------------------------------------------------
+	//  Clip launcher action mappings
+	// -------------------------------------------------------------------
+
+	controller.setEventCallback( "clip_launcher_press", function( data ) {
+		if ( data.scope === "clip" ) {
+			if ( data.action === "launch" ) {
+				return tracks.getTrack( data.x ).getClipLauncherSlots().launch( data.y );
+			} else {
+				return tracks.getTrack( data.x ).getClipLauncherSlots().stop();
+			}
+		} else {
+			if ( data.action === "launch" ) {
+				return tracks.getClipLauncherScenes().launch( data.y );
+			} else {
+				return tracks.getClipLauncherScenes().stop();
+			}
+		}
+	});
+
+
+	// -------------------------------------------------------------------
+	//  Transport mappings
+	// -------------------------------------------------------------------
+
+	controller.setEventCallback( "transport_button_press", function( value ) {
+		if ( value === 0 ) return transport.restart();
+		if ( value === 1 ) return transport.stop();
+		if ( value === 2 ) return transport.record();
+	});
 
 	host.showPopupNotification("APC40 plugged in");
 }

@@ -7,22 +7,35 @@ controller to control Bitwig Studio.
 
 ### Status
 
-As of February 25, 2014, it is in early development state with a very small
-feature set, though some of them are more or less done:
+As of February 25, 2014, it's on early development stage. Currently, this
+is the only available Akai APC40 control script for Bitwig Studio. :)
+
+Some of the features are more or less done:
 
 * Modeswitching (currently using mode 2)
-* User mapping of device knobs and track knobs
+* User mapping of all knobs
 * User mapping of crossfader (with two virtual controls for A and B tracks)
 * Knob LED feedback from Bitwig Studio
+* Automatic mapping of faders to track/master volume
+* BPM changing with "cue" knob while pressing "shift" button
+* Clip/scene launching and virtual view scrolling
+* Transport buttons (play/stop/rec)
 
-There are some bugs with LED feedback, but they won't be fixed until
-everything else is done.
+What does not work (aka missing major features / working on):
+
+* Clip launcher LED feedback
+* Current position indicator of clip launcher in Bitwig Studio
+* Track mute/solo/arm buttons
+* Track selectors, device and track control banks
 
 Script was only tested with Linux version of Bitwig Studio, so testers from
 other platforms are welcome.
 
-Also, as of the same date, this is the only publicly available mapping for
-Akai APC40. :)
+***
+
+### Known bugs
+
+See [issues](https://github.com/stylemistake/bitwig_apc40/issues).
 
 ***
 
