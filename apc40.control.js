@@ -1,5 +1,6 @@
 loadAPI(1);
 
+load("lib/polyfills.js");
 load("lib/helpers.js");
 load("lib/apc40.js");
 
@@ -122,7 +123,7 @@ function init() {
 
 
 	// -------------------------------------------------------------------
-	//  Clip launcher action mappings
+	//  Clip launcher
 	// -------------------------------------------------------------------
 
 	controller.setEventCallback( "clip_launcher_press", function( data ) {
@@ -140,6 +141,41 @@ function init() {
 			}
 		}
 	});
+
+	for ( var i = 0; i < 8; i += 1 ) (function( i, slots ) {
+		slots.setIndication( true );
+		var _led = function( slot, color ) {
+			return { "scope": "clip", "x": i, "y": slot, "value": color };
+		};
+
+		var ca1 = [ 0, 0, 0, 0, 0, 0, 0, 0 ];
+		slots.addHasContentObserver( function( slot, has_content ) {
+			ca1[slot] = has_content ? 3 : 0;
+			controller.setClipLauncherLed( _led( slot, ca1[slot] ) );
+		});
+
+		var ca2 = [ 0, 0, 0, 0, 0, 0, 0, 0 ];
+		slots.addIsPlayingObserver( function( slot, is_playing ) {
+			ca2[slot] = is_playing ? 1 : ca1[slot];
+			controller.setClipLauncherLed( _led( slot, ca2[slot] ) );
+		});
+
+		var ca3 = [ 0, 0, 0, 0, 0, 0, 0, 0 ];
+		slots.addIsQueuedObserver( function( slot, is_queued ) {
+			ca3[slot] = is_queued ? 6 : ca2[slot];
+			controller.setClipLauncherLed( _led( slot, ca3[slot] ) );
+		});
+	})( i, tracks.getTrack(i).getClipLauncherSlots() );
+
+	// master.getClipLauncherSlots().addHasContentObserver( function( slot, has_content ) {
+	// 	println( has_content );
+	// 	controller.setClipLauncherLed({
+	// 		"scope": "scene",
+	// 		"y": slot,
+	// 		"value": has_content ? 1 : 0
+	// 	});
+	// });
+
 
 
 	// -------------------------------------------------------------------

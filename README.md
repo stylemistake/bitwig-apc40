@@ -1,32 +1,27 @@
-## APC40 mapping script for Bitwig Studio
+## Akai APC40 control script for Bitwig Studio
 
-This is a custom mapping script for Akai APC40 performance
-controller to control Bitwig Studio.
+This is a custom Akai APC40 control script for Bitwig Studio.
+
+Currently, this is the only available Akai APC40 control script
+for Bitwig Studio. :)
 
 ***
 
 ### Status
 
-As of February 25, 2014, it's on early development stage. Currently, this
-is the only available Akai APC40 control script for Bitwig Studio. :)
+As of February 26, 2014, it's on early development stage, though some of the
+major features are more or less done and tested:
 
-Some of the features are more or less done:
+* Clip launcher
+* User mapping of all knobs (with LED feedback) and crossfader
+* Fader automapping to track volume
+* Transport (play/stop/rec)
 
-* Modeswitching (currently using mode 2)
-* User mapping of all knobs
-* User mapping of crossfader (with two virtual controls for A and B tracks)
-* Knob LED feedback from Bitwig Studio
-* Automatic mapping of faders to track/master volume
-* BPM changing with "cue" knob while pressing "shift" button
-* Clip/scene launching and virtual view scrolling
-* Transport buttons (play/stop/rec)
+What's not ready yet / working on:
 
-What does not work (aka missing major features / working on):
-
-* Clip launcher LED feedback
-* Current position indicator of clip launcher in Bitwig Studio
 * Track mute/solo/arm buttons
-* Track selectors, device and track control banks
+* Track selectors, device/track control banks
+* Mapping of all other buttons (ie. nudge, tap tempo, metronome etc)
 
 Script was only tested with Linux version of Bitwig Studio, so testers from
 other platforms are welcome.
@@ -43,6 +38,14 @@ See [issues](https://github.com/stylemistake/bitwig_apc40/issues).
 
 Place all repository tree into `Bitwig Studio/Controller Scripts` folder,
 restart Bitwig Studio and check settings.
+
+***
+
+### Misc
+
+* Rotating `cue level` knob while holding `shift` will change the tempo.
+* Crossfader has two virtual controls (each for A and B decks). While
+mapping crossfader, move right to map A, move left to map B.
 
 ***
 
