@@ -10,7 +10,6 @@ host.defineController(
 	"0.1", "0894C4A0-998E-11E3-A5E2-0800200C9A66"
 );
 host.defineMidiPorts( 1, 1 );
-host.addDeviceNameBasedDiscoveryPair( ["Akai APC40 MIDI 1"], ["Akai APC40 MIDI 1"] );
 host.addDeviceNameBasedDiscoveryPair( ["Akai APC40"], ["Akai APC40"] );
 
 var controller, transport, userctl, tracks, master, application;
@@ -24,7 +23,7 @@ function init() {
 
 	application = host.createApplication();
 	transport = host.createTransport();
-	master = host.createMasterTrack(0);
+	master = host.createMasterTrack( 5 );
 	tracks = host.createTrackBank( 8, 2, 5 );
 	userctl = host.createUserControlsSection(64);
 
@@ -37,7 +36,7 @@ function init() {
 	});
 
 	for ( var i = 0; i < 8; i += 1 ) (function( id ) {
-		mapUserCtl( userctl.getControl(i), "APC Knob D"+(i+1), function( value ) {
+		mapUserCtl( userctl.getControl(i), "Knob D"+(i+1), function( value ) {
 			controller.setDeviceKnob( id, value, 1 );
 		}, function() {
 			controller.setDeviceKnob( id, 0, 0 );
@@ -54,7 +53,7 @@ function init() {
 	});
 
 	for ( var i = 0; i < 8; i += 1 ) (function( id ) {
-		mapUserCtl( userctl.getControl(i+8), "APC Knob T"+(i+1), function( value ) {
+		mapUserCtl( userctl.getControl(i+8), "Knob T"+(i+1), function( value ) {
 			controller.setTrackKnob( id, value, 1 );
 		}, function() {
 			controller.setTrackKnob( id, 0, 0 );
@@ -66,8 +65,8 @@ function init() {
 	//  Crossfade user mapping
 	// -------------------------------------------------------------------
 
-	mapUserCtl( userctl.getControl( 16 ), "APC Crossfade A" );
-	mapUserCtl( userctl.getControl( 17 ), "APC Crossfade B" );
+	mapUserCtl( userctl.getControl( 16 ), "Cross A" );
+	mapUserCtl( userctl.getControl( 17 ), "Cross B" );
 	controller.setEventCallback( "crossfader_change", function( crossfader ) {
 		if ( crossfader.assign_a ) {
 			userctl.getControl( 16 ).set( crossfader.a, 128 );
@@ -83,6 +82,7 @@ function init() {
 	//  Cue knob mappings
 	// -------------------------------------------------------------------
 
+	mapUserCtl( userctl.getControl( 18 ), "Knob Cue" );
 	controller.setEventCallback( "cue_level_change", function( value ) {
 		userctl.getControl( 18 ).inc( value, 128 );
 	});
@@ -167,15 +167,13 @@ function init() {
 		});
 	})( i, tracks.getTrack(i).getClipLauncherSlots() );
 
+	// TODO: Make them scrollable
 	// master.getClipLauncherSlots().addHasContentObserver( function( slot, has_content ) {
-	// 	println( has_content );
 	// 	controller.setClipLauncherLed({
 	// 		"scope": "scene",
-	// 		"y": slot,
-	// 		"value": has_content ? 1 : 0
+	// 		"y": slot, "value": has_content ? 1 : 0
 	// 	});
 	// });
-
 
 
 	// -------------------------------------------------------------------
@@ -188,13 +186,25 @@ function init() {
 		if ( value === 2 ) return transport.record();
 	});
 
+
+	// -------------------------------------------------------------------
+	//  Other mappings
+	// -------------------------------------------------------------------
+
+	controller.setEventCallback( "bpm_tap", function( value ) {
+		println( "current: " + value );
+		transport.getTempo().set( value - 20, 647 );
+	});
+
+
+	// -----
 	host.showPopupNotification("APC40 plugged in");
 }
 
 function exit() {
 	// TODO: Clean up mess after Bitwig
+	controller.mode(0).stop();
 	host.showPopupNotification("APC40 plugged out");
-	controller.mode(0);
 }
 
 function mapUserCtl( ctl, label, fun_on, fun_off ) {
