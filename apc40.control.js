@@ -22,8 +22,21 @@ function init() {
 	transport = host.createTransport();
 	master = host.createMasterTrack( 5 );
 	tracks = host.createTrackBank( 8, 2, 5 );
-	userctl = host.createUserControlsSection(64);
+	userctl = host.createUserControlsSection( 64 );
 
+	setMappings();
+	host.showPopupNotification("APC40 plugged in");
+}
+
+function exit() {
+	// TODO: Clean up mess after Bitwig
+	for ( var i = 0; i < 8; i += 1 ) (function( i, slots ) {
+		slots.setIndication( false );
+	})( i, tracks.getTrack(i).getClipLauncherSlots() );
+	controller.clear().mode(0).stop();
+}
+
+function setMappings() {
 	// -------------------------------------------------------------------
 	//  Device knob user mapping
 	// -------------------------------------------------------------------
@@ -111,32 +124,44 @@ function init() {
 	controller.setEventCallback( "track_activator_press", function( track ) {
 		tracks.getTrack( track ).getMute().toggle();
 	});
-
-	for ( var i = 0; i < 8; i += 1 ) (function( i, track ) {
-		track.getMute().addValueObserver( function( is_muted ) {
-			controller.setActivatorLed( i, is_muted ? 0 : 1 );
-		});
-	})( i, tracks.getTrack(i) );
-
 	controller.setEventCallback( "track_solo_press", function( track ) {
 		tracks.getTrack( track ).getSolo().toggle();
 	});
-
-	for ( var i = 0; i < 8; i += 1 ) (function( i, track ) {
-		track.getSolo().addValueObserver( function( is_solo ) {
-			controller.setSoloLed( i, is_solo ? 1 : 0 );
-		});
-	})( i, tracks.getTrack(i) );
-
 	controller.setEventCallback( "track_arm_press", function( track ) {
 		tracks.getTrack( track ).getArm().toggle();
 	});
 
 	for ( var i = 0; i < 8; i += 1 ) (function( i, track ) {
+		track.getMute().addValueObserver( function( is_muted ) {
+			controller.setActivatorLed( i, is_muted ? 0 : 1 );
+		});
+		track.getSolo().addValueObserver( function( is_solo ) {
+			controller.setSoloLed( i, is_solo ? 1 : 0 );
+		});
 		track.getArm().addValueObserver( function( is_armed ) {
 			controller.setArmLed( i, is_armed ? 1 : 0 );
 		});
 	})( i, tracks.getTrack(i) );
+
+
+	// -------------------------------------------------------------------
+	//  Track selection
+	// -------------------------------------------------------------------
+
+	controller.setEventCallback( "track_selection", function( id ) {
+		if ( id >= 0 ) tracks.getTrack( id ).select();
+		else master.select();
+	});
+
+	for ( var i = 0; i < 8; i += 1 ) (function( id, track ) {
+		track.addIsSelectedObserver( function( status ) {
+			controller.setButtonLed( id, 0x33, status );
+		});
+	})( i, tracks.getTrack(i) );
+
+	master.addIsSelectedObserver( function( status ) {
+		controller.setButtonLed( 0, 0x50, status );
+	});
 
 
 	// -------------------------------------------------------------------
@@ -208,35 +233,58 @@ function init() {
 
 
 	// -------------------------------------------------------------------
-	//  Transport mappings
+	//  Other mappings
 	// -------------------------------------------------------------------
 
+	// Transport
 	controller.setEventCallback( "transport_button_press", function( value ) {
 		if ( value === 0 ) return transport.restart();
 		if ( value === 1 ) return transport.stop();
 		if ( value === 2 ) return transport.record();
 	});
 
-
-	// -------------------------------------------------------------------
-	//  Other mappings
-	// -------------------------------------------------------------------
-
+	// BPM tap
 	controller.setEventCallback( "bpm_tap", function( value ) {
 		transport.getTempo().set( value - 20, 647 );
 	});
 
+	// Metronome
+	controller.setEventCallback( "metronome_press", function() {
+		transport.toggleClick();
+	});
+	transport.addClickObserver( function( status ) {
+		controller.setButtonLed( 0, 0x41, status );
+	});
 
-	// -----
-	host.showPopupNotification("APC40 plugged in");
-}
+	// Overdub
+	controller.setEventCallback( "overdub_press", function() {
+		transport.toggleOverdub();
+	});
+	transport.addOverdubObserver( function( status ) {
+		controller.setButtonLed( 0, 0x40, status );
+	});
 
-function exit() {
-	// TODO: Clean up mess after Bitwig
-	for ( var i = 0; i < 8; i += 1 ) (function( i, slots ) {
-		slots.setIndication( false );
-	})( i, tracks.getTrack(i).getClipLauncherSlots() );
-	controller.mode(0).stop();
+	// Clip/Track button
+	controller.setEventCallback( "clip_track_press", function() {
+		application.nextPerspective();
+	});
+	application.addSelectedModeObserver( function( mode ) {
+		clip_track_state = mode;
+		if ( mode === "MIX" ) controller.setButtonLed( 0, 0x3a, true );
+		else controller.setButtonLed( 0, 0x3a, false );
+		println( mode );
+	}, 32, "" );
+
+	// Detail button
+	var detail_state = false;
+	controller.setButtonLed( 0, 0x3e, detail_state );
+	controller.setEventCallback( "detail_press", function() {
+		application.toggleAutomationEditor(); // dirty, but works :)
+		if ( detail_state ) application.toggleNoteEditor();
+		else application.toggleDevices();
+		controller.setButtonLed( 0, 0x3e, detail_state );
+		detail_state = ! detail_state;
+	});
 }
 
 function mapUserCtl( ctl, label, fun_on, fun_off ) {
